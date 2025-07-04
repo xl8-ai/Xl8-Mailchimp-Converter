@@ -1,0 +1,18 @@
+{
+  "title": "Google Docs → Mailchimp HTML Converter",
+  "description": "Convert Google Docs URL to HTML that can be used in Mailchimp.",
+  "urlLabel": "Google Docs URL",
+  "urlPlaceholder": "https://docs.google.com/document/d/...",
+  "convertButton": "Convert to HTML",
+  "converting": "Converting...",
+  "convertedHtml": "Converted HTML",
+  "preview": "Preview",
+  "htmlCode": "HTML Code",
+  "copyToClipboard": "Copy to Clipboard",
+  "downloadHtml": "Download HTML",
+  "goToMailchimp": "Go to Mailchimp",
+  "copiedSuccess": "HTML copied to clipboard!",
+  "enterUrl": "Please enter a Google Docs URL.",
+  "conversionError": "An error occurred during conversion. Please check the URL.",
+  "languageSwitch": "한국어"
+}

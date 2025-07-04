@@ -1,0 +1,18 @@
+{
+  "title": "구글 독스 → 메일침프 HTML 변환기",
+  "description": "구글 독스 URL을 입력하면 메일침프에서 사용할 수 있는 HTML로 변환해드립니다.",
+  "urlLabel": "구글 독스 URL",
+  "urlPlaceholder": "https://docs.google.com/document/d/...",
+  "convertButton": "HTML로 변환",
+  "converting": "변환 중...",
+  "convertedHtml": "변환된 HTML",
+  "preview": "미리보기",
+  "htmlCode": "HTML 코드",
+  "copyToClipboard": "클립보드에 복사",
+  "downloadHtml": "HTML 다운로드",
+  "goToMailchimp": "메일침프로 이동",
+  "copiedSuccess": "HTML이 클립보드에 복사되었습니다!",
+  "enterUrl": "구글 독스 URL을 입력해주세요.",
+  "conversionError": "변환 중 오류가 발생했습니다. URL을 확인해주세요.",
+  "languageSwitch": "English"
+}
