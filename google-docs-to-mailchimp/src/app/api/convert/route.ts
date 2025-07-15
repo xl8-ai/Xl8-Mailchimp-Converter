@@ -49,6 +49,28 @@ export async function POST(request: NextRequest) {
       $(elem).removeAttr("onclick");
       $(elem).removeAttr("onload");
       $(elem).removeAttr("onerror");
+
+      // 폰트 크기 정보 보존을 위해 style 속성 처리
+      const style = $(elem).attr("style");
+      if (style) {
+        // 폰트 크기 관련 스타일 보존
+        const fontSizeMatch = style.match(/font-size:\s*([^;]+)/i);
+        const fontWeightMatch = style.match(/font-weight:\s*([^;]+)/i);
+        const fontFamilyMatch = style.match(/font-family:\s*([^;]+)/i);
+        const colorMatch = style.match(/color:\s*([^;]+)/i);
+
+        let preservedStyle = "";
+        if (fontSizeMatch) preservedStyle += `font-size: ${fontSizeMatch[1]};`;
+        if (fontWeightMatch)
+          preservedStyle += `font-weight: ${fontWeightMatch[1]};`;
+        if (fontFamilyMatch)
+          preservedStyle += `font-family: ${fontFamilyMatch[1]};`;
+        if (colorMatch) preservedStyle += `color: ${colorMatch[1]};`;
+
+        if (preservedStyle) {
+          $(elem).attr("style", preservedStyle);
+        }
+      }
     });
 
     // 하이퍼링크 보존 및 스타일 적용
@@ -137,9 +159,16 @@ export async function POST(request: NextRequest) {
     $("p").each((_, elem) => {
       const $elem = $(elem);
       const existingStyle = $elem.attr("style") || "";
+
+      // 기존 폰트 크기가 있으면 보존, 없으면 기본값 적용
+      const hasFontSize = existingStyle.includes("font-size");
+      const baseStyle = hasFontSize
+        ? existingStyle
+        : `${existingStyle}; font-size: 14px;`;
+
       $elem.attr(
         "style",
-        `${existingStyle}; margin: 0 0 16px 0; line-height: 1.6;`.replace(
+        `${baseStyle}; margin: 0 0 16px 0; line-height: 1.6;`.replace(
           /^;\s*/,
           ""
         )
@@ -149,9 +178,16 @@ export async function POST(request: NextRequest) {
     $("h1").each((_, elem) => {
       const $elem = $(elem);
       const existingStyle = $elem.attr("style") || "";
+
+      // 기존 폰트 크기가 있으면 보존, 없으면 기본값 적용
+      const hasFontSize = existingStyle.includes("font-size");
+      const baseStyle = hasFontSize
+        ? existingStyle
+        : `${existingStyle}; font-size: 24px;`;
+
       $elem.attr(
         "style",
-        `${existingStyle}; font-size: 24px; font-weight: bold; margin: 20px 0 16px 0; line-height: 1.3;`.replace(
+        `${baseStyle}; font-weight: bold; margin: 20px 0 16px 0; line-height: 1.3;`.replace(
           /^;\s*/,
           ""
         )
@@ -161,9 +197,15 @@ export async function POST(request: NextRequest) {
     $("h2").each((_, elem) => {
       const $elem = $(elem);
       const existingStyle = $elem.attr("style") || "";
+
+      const hasFontSize = existingStyle.includes("font-size");
+      const baseStyle = hasFontSize
+        ? existingStyle
+        : `${existingStyle}; font-size: 20px;`;
+
       $elem.attr(
         "style",
-        `${existingStyle}; font-size: 20px; font-weight: bold; margin: 18px 0 14px 0; line-height: 1.3;`.replace(
+        `${baseStyle}; font-weight: bold; margin: 18px 0 14px 0; line-height: 1.3;`.replace(
           /^;\s*/,
           ""
         )
@@ -173,9 +215,15 @@ export async function POST(request: NextRequest) {
     $("h3").each((_, elem) => {
       const $elem = $(elem);
       const existingStyle = $elem.attr("style") || "";
+
+      const hasFontSize = existingStyle.includes("font-size");
+      const baseStyle = hasFontSize
+        ? existingStyle
+        : `${existingStyle}; font-size: 18px;`;
+
       $elem.attr(
         "style",
-        `${existingStyle}; font-size: 18px; font-weight: bold; margin: 16px 0 12px 0; line-height: 1.3;`.replace(
+        `${baseStyle}; font-weight: bold; margin: 16px 0 12px 0; line-height: 1.3;`.replace(
           /^;\s*/,
           ""
         )
@@ -237,29 +285,85 @@ export async function POST(request: NextRequest) {
       );
     });
 
-    // CTA 텍스트를 찾아서 버튼으로 변환
-    $("p, div, span").each((_, elem) => {
+    // CTA 텍스트를 찾아서 버튼으로 변환 (모든 텍스트 요소에서 검색)
+    $("p, div, span, h1, h2, h3, h4, h5, h6").each((_, elem) => {
       const $elem = $(elem);
       const text = $elem.text();
+      const html = $elem.html();
 
-      // CTA로 시작하는 텍스트 찾기
-      if (text.trim().startsWith("CTA") || text.includes("<CTA>")) {
-        const ctaMatch = text.match(/CTA[:\s]*([^\n\r]+)/i);
+      // [cta] 또는 CTA로 시작하는 텍스트 찾기
+      if (
+        text.trim().match(/^\[cta\]/i) ||
+        text.trim().startsWith("CTA") ||
+        text.includes("<CTA>")
+      ) {
+        // [cta] 패턴 처리
+        const ctaMatch =
+          text.match(/\[cta\]\s*([^\n\r\[]+)(?:\s*\[\/cta\])?/i) ||
+          text.match(/CTA[:\s]*([^\n\r]+)/i);
+
         if (ctaMatch) {
           const buttonText = ctaMatch[1].trim();
 
-          // 코멘트 링크에서 해당 버튼 텍스트와 매칭되는 링크 찾기
-          let buttonUrl = "#";
-          Object.keys(commentLinks).forEach((key) => {
-            if (
-              buttonText.toLowerCase().includes(key.toLowerCase()) ||
-              key.toLowerCase().includes(buttonText.toLowerCase())
-            ) {
-              buttonUrl = commentLinks[key];
-            }
-          });
+          // 1. 먼저 HTML에서 링크 추출 (하이퍼링크가 있는 경우)
+          const linkInHtml = html?.match(
+            /<a[^>]+href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/i
+          );
 
-          const buttonHtml = createMailchimpButton(buttonText, buttonUrl);
+          let buttonUrl = "#";
+          let finalButtonText = buttonText;
+
+          if (linkInHtml) {
+            // HTML에 링크가 있는 경우 그 링크 사용
+            finalButtonText = linkInHtml[2].trim();
+            buttonUrl = linkInHtml[1].trim();
+
+            // 구글 독스 리다이렉트 URL 처리
+            if (buttonUrl.includes("www.google.com/url")) {
+              try {
+                const urlParams = new URL(buttonUrl).searchParams;
+                const actualUrl = urlParams.get("q") || buttonUrl;
+                buttonUrl = actualUrl;
+              } catch {
+                // URL 파싱 실패 시 원본 유지
+              }
+            }
+          } else {
+            // 2. 텍스트에서 직접 링크 추출
+            const linkPatterns = [
+              // 일반 URL 패턴
+              /(.*?)\s*(https?:\/\/[^\s]+)/,
+              // 괄호 안의 링크
+              /(.*?)\s*\((https?:\/\/[^)]+)\)/,
+              // 마크다운 스타일 링크
+              /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/,
+              // 텍스트 뒤에 바로 붙은 링크
+              /([^h]+)(https?:\/\/[^\s]+)/,
+            ];
+
+            for (const pattern of linkPatterns) {
+              const linkMatch = buttonText.match(pattern);
+              if (linkMatch) {
+                finalButtonText = linkMatch[1].trim();
+                buttonUrl = linkMatch[2].trim();
+                break;
+              }
+            }
+
+            // 3. 코멘트 링크에서 매칭되는 링크 찾기
+            if (buttonUrl === "#") {
+              Object.keys(commentLinks).forEach((key) => {
+                if (
+                  buttonText.toLowerCase().includes(key.toLowerCase()) ||
+                  key.toLowerCase().includes(buttonText.toLowerCase())
+                ) {
+                  buttonUrl = commentLinks[key];
+                }
+              });
+            }
+          }
+
+          const buttonHtml = createMailchimpButton(finalButtonText, buttonUrl);
           $elem.replaceWith(buttonHtml);
         }
       }

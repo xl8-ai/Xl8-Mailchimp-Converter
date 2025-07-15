@@ -365,30 +365,36 @@ export function convertCTAToButton(html: string): string {
 
 export function createMailchimpButton(text: string, url: string = "#"): string {
   return `
-<table cellpadding="0" cellspacing="0" style="margin: 20px 0; border-collapse: collapse;">
+<table cellpadding="0" cellspacing="0" style="margin: 20px auto; border-collapse: collapse; width: 100%;">
   <tr>
-    <td style="padding: 0; background-color: #007cba; border-radius: 6px;">
-      <a href="${url}" style="
-        display: block;
-        padding: 12px 24px;
-        background-color: #007cba !important;
-        color: #ffffff !important;
-        text-decoration: none !important;
-        border-radius: 6px;
-        font-weight: bold;
-        font-size: 16px;
-        line-height: 1.2;
-        text-align: center;
-        border: none;
-        font-family: Arial, sans-serif;
-        mso-line-height-rule: exactly;
-      " target="_blank">
-        <font color="#ffffff" style="color: #ffffff !important; text-decoration: none !important;">
-          <span style="color: #ffffff !important; text-decoration: none !important;">
-            ${text}
-          </span>
-        </font>
-      </a>
+    <td style="text-align: center;">
+      <table cellpadding="0" cellspacing="0" style="margin: 0 auto; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 0; background-color: #ff6b35; border-radius: 6px;">
+            <a href="${url}" style="
+              display: block;
+              padding: 12px 24px;
+              background-color: #ff6b35 !important;
+              color: #ffffff !important;
+              text-decoration: none !important;
+              border-radius: 6px;
+              font-weight: bold;
+              font-size: 16px;
+              line-height: 1.2;
+              text-align: center;
+              border: none;
+              font-family: Arial, sans-serif;
+              mso-line-height-rule: exactly;
+            " target="_blank">
+              <font color="#ffffff" style="color: #ffffff !important; text-decoration: none !important;">
+                <span style="color: #ffffff !important; text-decoration: none !important;">
+                  ${text}
+                </span>
+              </font>
+            </a>
+          </td>
+        </tr>
+      </table>
     </td>
   </tr>
 </table>`.trim();
@@ -449,7 +455,57 @@ export function enhancedCTAConversion(
 ): string {
   let processedHtml = html;
 
-  // CTA 패턴들을 순서대로 처리
+  // [cta] 패턴 처리 - 가장 우선순위로 처리
+  processedHtml = processedHtml.replace(
+    /\[cta\]\s*([^\n\r<\[]+)(?:\s*\[\/cta\])?/gi,
+    (match, buttonText) => {
+      const cleanText = buttonText.trim();
+
+      // 텍스트에서 링크 추출 (다양한 패턴 지원)
+      const linkPatterns = [
+        // 일반 URL 패턴
+        /(.*?)\s*(https?:\/\/[^\s]+)/,
+        // 괄호 안의 링크
+        /(.*?)\s*\((https?:\/\/[^)]+)\)/,
+        // 마크다운 스타일 링크
+        /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/,
+        // 텍스트 뒤에 바로 붙은 링크
+        /([^h]+)(https?:\/\/[^\s]+)/,
+      ];
+
+      let finalButtonText = cleanText;
+      let buttonUrl = "#";
+
+      // 각 패턴으로 링크 추출 시도
+      for (const pattern of linkPatterns) {
+        const linkMatch = cleanText.match(pattern);
+        if (linkMatch) {
+          finalButtonText = linkMatch[1].trim();
+          buttonUrl = linkMatch[2].trim();
+          break;
+        }
+      }
+
+      // 링크를 찾지 못한 경우 코멘트 링크에서 찾기
+      if (buttonUrl === "#") {
+        const textLower = finalButtonText.toLowerCase();
+        Object.keys(commentLinks).forEach((key) => {
+          const keyLower = key.toLowerCase();
+          if (
+            textLower === keyLower ||
+            textLower.includes(keyLower) ||
+            keyLower.includes(textLower)
+          ) {
+            buttonUrl = commentLinks[key];
+          }
+        });
+      }
+
+      return createMailchimpButton(finalButtonText, buttonUrl);
+    }
+  );
+
+  // 기존 CTA 패턴들을 순서대로 처리
   const ctaPatterns = [
     // <CTA>텍스트</CTA>
     /<CTA>([^<]+)<\/CTA>/gi,
@@ -465,23 +521,42 @@ export function enhancedCTAConversion(
     processedHtml = processedHtml.replace(pattern, (match, buttonText) => {
       const cleanText = buttonText.trim();
 
-      // 코멘트 링크에서 매칭되는 링크 찾기
+      // 텍스트에서 링크 추출 (다양한 패턴 지원)
+      const linkPatterns = [
+        /(.*?)\s*(https?:\/\/[^\s]+)/,
+        /(.*?)\s*\((https?:\/\/[^)]+)\)/,
+        /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/,
+        /([^h]+)(https?:\/\/[^\s]+)/,
+      ];
+
+      let finalButtonText = cleanText;
       let buttonUrl = "#";
-      const textLower = cleanText.toLowerCase();
 
-      // 정확한 매칭 먼저 시도
-      Object.keys(commentLinks).forEach((key) => {
-        const keyLower = key.toLowerCase();
-        if (
-          textLower === keyLower ||
-          textLower.includes(keyLower) ||
-          keyLower.includes(textLower)
-        ) {
-          buttonUrl = commentLinks[key];
+      for (const pattern of linkPatterns) {
+        const linkMatch = cleanText.match(pattern);
+        if (linkMatch) {
+          finalButtonText = linkMatch[1].trim();
+          buttonUrl = linkMatch[2].trim();
+          break;
         }
-      });
+      }
 
-      return createMailchimpButton(cleanText, buttonUrl);
+      // 링크를 찾지 못한 경우 코멘트 링크에서 찾기
+      if (buttonUrl === "#") {
+        const textLower = finalButtonText.toLowerCase();
+        Object.keys(commentLinks).forEach((key) => {
+          const keyLower = key.toLowerCase();
+          if (
+            textLower === keyLower ||
+            textLower.includes(keyLower) ||
+            keyLower.includes(textLower)
+          ) {
+            buttonUrl = commentLinks[key];
+          }
+        });
+      }
+
+      return createMailchimpButton(finalButtonText, buttonUrl);
     });
   });
 

@@ -144,6 +144,66 @@ export default function Home() {
             />
           </div>
 
+          {/* 사용법 안내 */}
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <h3 className="text-sm font-medium text-blue-900 mb-2">
+              {language === "ko"
+                ? "💡 CTA 버튼 만들기"
+                : "💡 Creating CTA Buttons"}
+            </h3>
+            <div className="text-sm text-blue-700 space-y-2">
+              <p>
+                {language === "ko"
+                  ? "구글 독스에서 다음과 같이 입력하면 주황색 버튼이 생성됩니다:"
+                  : "Type the following in Google Docs to create orange buttons:"}
+              </p>
+              <code className="bg-blue-100 px-2 py-1 rounded text-xs block">
+                [cta] {language === "ko" ? "버튼 텍스트" : "Button Text"}
+              </code>
+
+              <div className="text-xs space-y-1 mt-2">
+                <p className="font-medium">
+                  {language === "ko"
+                    ? "📎 링크 연결 방법:"
+                    : "📎 Link Connection Methods:"}
+                </p>
+                <p>
+                  {language === "ko"
+                    ? "1. 텍스트를 선택하고 하이퍼링크 추가 (가장 권장)"
+                    : "1. Select text and add hyperlink (most recommended)"}
+                </p>
+                <p>
+                  {language === "ko"
+                    ? "2. 텍스트 뒤에 URL 직접 입력"
+                    : "2. Type URL directly after text"}
+                </p>
+                <code className="bg-blue-100 px-2 py-1 rounded text-xs block">
+                  [cta] {language === "ko" ? "구매하기" : "Buy Now"}{" "}
+                  https://example.com
+                </code>
+                <p>
+                  {language === "ko"
+                    ? "3. 마크다운 스타일 링크"
+                    : "3. Markdown style link"}
+                </p>
+                <code className="bg-blue-100 px-2 py-1 rounded text-xs block">
+                  [cta] [{language === "ko" ? "구매하기" : "Buy Now"}
+                  ](https://example.com)
+                </code>
+                <p className="text-xs text-blue-600 mt-2">
+                  {language === "ko"
+                    ? "💡 구글 독스의 폰트 크기와 스타일도 자동으로 보존됩니다!"
+                    : "💡 Google Docs font size and styles are automatically preserved!"}
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  {language === "ko"
+                    ? "✅ 일반 텍스트, 제목(H1~H6) 모두에서 사용 가능합니다!"
+                    : "✅ Works in regular text and headings (H1~H6)!"}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <button
             onClick={handleConvert}
             disabled={loading}
