@@ -370,11 +370,11 @@ export function createMailchimpButton(text: string, url: string = "#"): string {
     <td style="text-align: center;">
       <table cellpadding="0" cellspacing="0" style="margin: 0 auto; border-collapse: collapse;">
         <tr>
-          <td style="padding: 0; background-color: #1a73e8; border-radius: 6px;">
+          <td style="padding: 0; background-color: #ff6b35; border-radius: 6px;">
             <a href="${url}" style="
               display: block;
               padding: 12px 24px;
-              background-color: #1a73e8 !important;
+              background-color: #ff6b35 !important;
               color: #ffffff !important;
               text-decoration: none !important;
               border-radius: 6px;
