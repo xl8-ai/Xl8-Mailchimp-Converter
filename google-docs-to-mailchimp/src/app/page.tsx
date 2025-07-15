@@ -154,8 +154,8 @@ export default function Home() {
             <div className="text-sm text-blue-700 space-y-2">
               <p>
                 {language === "ko"
-                  ? "구글 독스에서 다음과 같이 입력하면 주황색 버튼이 생성됩니다:"
-                  : "Type the following in Google Docs to create orange buttons:"}
+                  ? "구글 독스에서 다음과 같이 입력하면 파란색 버튼이 생성됩니다:"
+                  : "Type the following in Google Docs to create blue buttons:"}
               </p>
               <code className="bg-blue-100 px-2 py-1 rounded text-xs block">
                 [cta] {language === "ko" ? "버튼 텍스트" : "Button Text"}

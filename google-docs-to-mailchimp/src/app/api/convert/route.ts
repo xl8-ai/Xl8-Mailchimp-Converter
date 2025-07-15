@@ -102,13 +102,13 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 링크 스타일 적용 - 기존 색상이 있으면 유지, 없으면 주황색 적용
+      // 링크 스타일 적용 - 기존 색상이 있으면 유지, 없으면 파란색 적용
       const hasExistingColor = existingStyle.includes("color:");
       let linkStyle = existingStyle;
 
       if (!hasExistingColor) {
-        // 기존 색상이 없으면 주황색 적용
-        linkStyle = `${existingStyle}; color: #ff6b35;`.replace(/^;\s*/, "");
+        // 기존 색상이 없으면 파란색 적용
+        linkStyle = `${existingStyle}; color: #1a73e8;`.replace(/^;\s*/, "");
       }
 
       // 밑줄과 target은 항상 적용
@@ -401,11 +401,60 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    let bodyContent = $("body").html() || "";
+    // 페이지 구분 감지 및 섹션 간 여백 추가
+    let bodyContent = $("body").html() || $.html();
 
-    if (!bodyContent) {
-      bodyContent = $.html();
-    }
+    // 구글 독스의 페이지 구분 패턴들을 감지
+    const pageBreakPatterns = [
+      // 페이지 구분 관련 클래스나 스타일
+      /<div[^>]*page-break[^>]*>/gi,
+      /<div[^>]*break-before[^>]*>/gi,
+      /<div[^>]*break-after[^>]*>/gi,
+      // 구글 독스 특정 페이지 구분 패턴
+      /<div[^>]*style="[^"]*page-break[^"]*"[^>]*>/gi,
+      // 연속된 빈 줄들 (3개 이상의 br 태그)
+      /(<br[^>]*>\s*){3,}/gi,
+      // 긴 여백을 가진 div들
+      /<div[^>]*style="[^"]*margin-top:\s*[4-9]\d+px[^"]*"[^>]*>/gi,
+      /<div[^>]*style="[^"]*margin-bottom:\s*[4-9]\d+px[^"]*"[^>]*>/gi,
+    ];
+
+    // 페이지 구분을 섹션 구분으로 변환
+    pageBreakPatterns.forEach((pattern) => {
+      bodyContent = bodyContent.replace(pattern, (match) => {
+        return `<div style="margin: 40px 0; border-bottom: 1px solid #e0e0e0; padding-bottom: 20px;"></div>${match}`;
+      });
+    });
+
+    // 연속된 단락들 사이의 여백 조정
+    bodyContent = bodyContent.replace(/(<\/p>\s*<p[^>]*>)/gi, (match) => {
+      return match.replace("<p", '<p style="margin-top: 20px;"');
+    });
+
+    // 제목 태그들 사이의 여백 증가
+    bodyContent = bodyContent.replace(
+      /(<\/h[1-6]>\s*<h[1-6][^>]*>)/gi,
+      (match) => {
+        return match.replace(/<h([1-6])([^>]*)>/, (hMatch, level, attrs) => {
+          return `<h${level} style="margin-top: 35px; margin-bottom: 15px;"${attrs}>`;
+        });
+      }
+    );
+
+    // 리스트와 다른 요소들 사이의 여백 조정
+    bodyContent = bodyContent.replace(
+      /(<\/ul>\s*<p[^>]*>)|(<\/ol>\s*<p[^>]*>)/gi,
+      (match) => {
+        return match.replace("<p", '<p style="margin-top: 25px;"');
+      }
+    );
+
+    bodyContent = bodyContent.replace(
+      /(<\/p>\s*<ul[^>]*>)|(<\/p>\s*<ol[^>]*>)/gi,
+      (match) => {
+        return match.replace(/<(ul|ol)/, '<$1 style="margin-top: 20px;"');
+      }
+    );
 
     // CTA 변환을 개선된 함수로 처리
     const processedHtml = enhancedCTAConversion(bodyContent, commentLinks);
