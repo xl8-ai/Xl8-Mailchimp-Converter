@@ -50,22 +50,34 @@ export async function POST(request: NextRequest) {
       $(elem).removeAttr("onload");
       $(elem).removeAttr("onerror");
 
-      // 폰트 크기 정보 보존을 위해 style 속성 처리
+      // 모든 스타일 속성 보존 (더 포괄적으로)
       const style = $(elem).attr("style");
       if (style) {
-        // 폰트 크기 관련 스타일 보존
-        const fontSizeMatch = style.match(/font-size:\s*([^;]+)/i);
-        const fontWeightMatch = style.match(/font-weight:\s*([^;]+)/i);
-        const fontFamilyMatch = style.match(/font-family:\s*([^;]+)/i);
-        const colorMatch = style.match(/color:\s*([^;]+)/i);
-
+        // 모든 스타일 속성을 보존하되, 메일 호환성을 위해 정리
+        const styleProps = style.split(";").filter((prop) => prop.trim());
         let preservedStyle = "";
-        if (fontSizeMatch) preservedStyle += `font-size: ${fontSizeMatch[1]};`;
-        if (fontWeightMatch)
-          preservedStyle += `font-weight: ${fontWeightMatch[1]};`;
-        if (fontFamilyMatch)
-          preservedStyle += `font-family: ${fontFamilyMatch[1]};`;
-        if (colorMatch) preservedStyle += `color: ${colorMatch[1]};`;
+
+        styleProps.forEach((prop) => {
+          const trimmedProp = prop.trim();
+          if (trimmedProp) {
+            // 중요한 스타일들은 모두 보존 (더 포괄적으로)
+            if (
+              trimmedProp.includes("font-size") ||
+              trimmedProp.includes("font-weight") ||
+              trimmedProp.includes("font-family") ||
+              trimmedProp.includes("color") ||
+              trimmedProp.includes("background-color") ||
+              trimmedProp.includes("text-decoration") ||
+              trimmedProp.includes("font-style") ||
+              trimmedProp.includes("text-align") ||
+              trimmedProp.includes("line-height") ||
+              trimmedProp.includes("margin") ||
+              trimmedProp.includes("padding")
+            ) {
+              preservedStyle += `${trimmedProp};`;
+            }
+          }
+        });
 
         if (preservedStyle) {
           $(elem).attr("style", preservedStyle);
@@ -90,14 +102,21 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 링크 스타일 적용
-      $elem.attr(
-        "style",
-        `${existingStyle}; color: #1a73e8; text-decoration: underline;`.replace(
-          /^;\s*/,
-          ""
-        )
-      );
+      // 링크 스타일 적용 - 기존 색상이 있으면 유지, 없으면 주황색 적용
+      const hasExistingColor = existingStyle.includes("color:");
+      let linkStyle = existingStyle;
+
+      if (!hasExistingColor) {
+        // 기존 색상이 없으면 주황색 적용
+        linkStyle = `${existingStyle}; color: #ff6b35;`.replace(/^;\s*/, "");
+      }
+
+      // 밑줄과 target은 항상 적용
+      if (!linkStyle.includes("text-decoration:")) {
+        linkStyle += "; text-decoration: underline;";
+      }
+
+      $elem.attr("style", linkStyle.replace(/^;\s*/, ""));
       $elem.attr("target", "_blank");
     });
 
@@ -283,6 +302,19 @@ export async function POST(request: NextRequest) {
           ""
         )
       );
+    });
+
+    // 텍스트 요소들의 색상 보존 강화
+    $("span, div, p").each((_, elem) => {
+      const $elem = $(elem);
+      const existingStyle = $elem.attr("style") || "";
+
+      // 기존 스타일이 있으면 보존하고, 라인 높이만 추가
+      if (existingStyle) {
+        if (!existingStyle.includes("line-height")) {
+          $elem.attr("style", `${existingStyle}; line-height: 1.6;`);
+        }
+      }
     });
 
     // CTA 텍스트를 찾아서 버튼으로 변환 (모든 텍스트 요소에서 검색)
