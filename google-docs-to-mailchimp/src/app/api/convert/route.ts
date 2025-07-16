@@ -294,22 +294,51 @@ export async function POST(request: NextRequest) {
       );
     });
 
-    // 이미지는 기본 처리만 (원본 유지)
+    // 이미지 처리 및 링크 연결 지원
     $("img").each((_, elem) => {
-      const src = $(elem).attr("src");
-      if (src && src.startsWith("//")) {
-        $(elem).attr("src", "https:" + src);
-      }
-      // 이미지에도 기본 스타일 추가 (메일 호환성)
       const $elem = $(elem);
+      const src = $elem.attr("src");
+      
+      // 상대 경로를 절대 경로로 변환
+      if (src && src.startsWith("//")) {
+        $elem.attr("src", "https:" + src);
+      }
+      
+      // 이미지에 기본 스타일 추가 (메일 호환성)
       const existingStyle = $elem.attr("style") || "";
       $elem.attr(
         "style",
-        `${existingStyle}; max-width: 100%; height: auto; display: block;`.replace(
+        `${existingStyle}; max-width: 100%; height: auto; display: block; border: 0;`.replace(
           /^;\s*/,
           ""
         )
       );
+      
+      // 부모가 링크인 경우 링크 스타일 최적화
+      const $parentLink = $elem.parent("a");
+      if ($parentLink.length > 0) {
+        // 링크가 있는 이미지의 경우 부모 링크에 스타일 추가
+        const parentStyle = $parentLink.attr("style") || "";
+        $parentLink.attr(
+          "style", 
+          `${parentStyle}; display: inline-block; text-decoration: none; border: none;`.replace(
+            /^;\s*/,
+            ""
+          )
+        );
+        
+        // target="_blank" 추가 (이미 있으면 유지)
+        if (!$parentLink.attr("target")) {
+          $parentLink.attr("target", "_blank");
+        }
+        
+        // 이미지 자체에도 클릭 가능함을 나타내는 스타일 추가
+        const imgStyle = $elem.attr("style") || "";
+        $elem.attr(
+          "style",
+          `${imgStyle}; cursor: pointer;`.replace(/^;\s*/, "")
+        );
+      }
     });
 
     // 텍스트 요소들의 색상 보존 강화 및 bold 스타일 보강

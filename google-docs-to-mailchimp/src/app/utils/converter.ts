@@ -584,10 +584,10 @@ export function enhancedCTAConversion(
 export function convertSpaceToMargin(html: string): string {
   let processedHtml = html;
 
-  // [space] 패턴을 여백으로 변환
+  // [space] 패턴을 여백으로 변환 (크기 조정: 30px -> 20px)
   processedHtml = processedHtml.replace(
     /\[space\]/gi,
-    '<div style="margin: 30px 0; height: 30px; line-height: 30px;">&nbsp;</div>'
+    '<div style="margin: 20px 0; height: 20px; line-height: 20px;">&nbsp;</div>'
   );
 
   // 텍스트 요소 안에 [space]가 있는 경우도 처리
@@ -604,9 +604,9 @@ export function convertSpaceToMargin(html: string): string {
         result += match.replace(/\[space\].*$/, trimmedBefore + `</${tag}>`);
       }
 
-      // 여백 추가
+      // 여백 추가 (크기 조정: 30px -> 20px)
       result +=
-        '<div style="margin: 30px 0; height: 30px; line-height: 30px;">&nbsp;</div>';
+        '<div style="margin: 20px 0; height: 20px; line-height: 20px;">&nbsp;</div>';
 
       // 뒤 텍스트가 있으면 추가
       if (trimmedAfter) {
