@@ -226,6 +226,38 @@ export default function Home() {
             </div>
           </div>
 
+          {/* 이미지 링크 기능 안내 */}
+          <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-md">
+            <h3 className="text-sm font-medium text-purple-900 mb-2">
+              {language === "ko"
+                ? "🖼️ 이미지에 링크 추가하기"
+                : "🖼️ Adding Links to Images"}
+            </h3>
+            <div className="text-sm text-purple-700 space-y-2">
+              <p>
+                {language === "ko"
+                  ? "이미지 바로 앞에 다음과 같이 입력하면 이미지에 링크가 연결됩니다:"
+                  : "Type the following right before an image to add a link:"}
+              </p>
+              <code className="bg-purple-100 px-2 py-1 rounded text-xs block">
+                [img-link: https://example.com]
+              </code>
+              <p className="text-xs text-purple-600 mt-2">
+                {language === "ko"
+                  ? "또는 띄어쓰기로 구분해서 사용할 수도 있습니다:"
+                  : "Or you can use it with a space:"}
+              </p>
+              <code className="bg-purple-100 px-2 py-1 rounded text-xs block">
+                [img-link] https://example.com
+              </code>
+              <p className="text-xs text-purple-600 mt-2">
+                {language === "ko"
+                  ? "💡 이미지를 클릭하면 새 창에서 링크가 열립니다!"
+                  : "💡 Clicking the image will open the link in a new tab!"}
+              </p>
+            </div>
+          </div>
+
           <button
             onClick={handleConvert}
             disabled={loading}

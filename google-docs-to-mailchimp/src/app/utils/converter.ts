@@ -619,3 +619,53 @@ export function convertSpaceToMargin(html: string): string {
 
   return processedHtml;
 }
+
+export function convertImageLinks(html: string): string {
+  let processedHtml = html;
+
+  // [img-link:URL] 패턴을 찾아서 다음 이미지에 링크 적용
+  processedHtml = processedHtml.replace(
+    /\[img-link:\s*(https?:\/\/[^\]]+)\]/gi,
+    (match, url) => {
+      // 패턴을 임시 마커로 교체
+      return `<!--IMG_LINK_MARKER:${url}-->`;
+    }
+  );
+
+  // 임시 마커 다음에 나오는 이미지를 링크로 감싸기
+  processedHtml = processedHtml.replace(
+    /<!--IMG_LINK_MARKER:(https?:\/\/[^-->]+)-->\s*(<img[^>]*>)/gi,
+    (match, url, imgTag) => {
+      return `<a href="${url}" target="_blank" style="display: inline-block; text-decoration: none; border: none;">${imgTag}</a>`;
+    }
+  );
+
+  // [img-link] URL 패턴도 지원 (띄어쓰기로 구분)
+  processedHtml = processedHtml.replace(
+    /\[img-link\]\s*(https?:\/\/[^\s<]+)/gi,
+    (match, url) => {
+      return `<!--IMG_LINK_MARKER:${url}-->`;
+    }
+  );
+
+  // 다시 임시 마커 처리
+  processedHtml = processedHtml.replace(
+    /<!--IMG_LINK_MARKER:(https?:\/\/[^-->]+)-->\s*(<img[^>]*>)/gi,
+    (match, url, imgTag) => {
+      return `<a href="${url}" target="_blank" style="display: inline-block; text-decoration: none; border: none;">${imgTag}</a>`;
+    }
+  );
+
+  // 이미지 바로 앞의 링크 패턴도 처리 (이미지와 같은 줄에 있는 경우)
+  processedHtml = processedHtml.replace(
+    /\[link:\s*(https?:\/\/[^\]]+)\]\s*(<img[^>]*>)/gi,
+    (match, url, imgTag) => {
+      return `<a href="${url}" target="_blank" style="display: inline-block; text-decoration: none; border: none;">${imgTag}</a>`;
+    }
+  );
+
+  // 남아있는 마커들 제거 (이미지가 없는 경우)
+  processedHtml = processedHtml.replace(/<!--IMG_LINK_MARKER:[^-->]+-->/gi, "");
+
+  return processedHtml;
+}

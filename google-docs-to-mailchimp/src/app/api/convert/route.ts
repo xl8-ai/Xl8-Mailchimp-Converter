@@ -6,6 +6,7 @@ import {
   extractLinksFromComments,
   createMailchimpButton,
   convertSpaceToMargin,
+  convertImageLinks,
 } from "@/app/utils/converter";
 
 export async function POST(request: NextRequest) {
@@ -328,20 +329,20 @@ export async function POST(request: NextRequest) {
       );
     });
 
-        // 이미지 처리 (링크는 위에서 이미 처리됨)
+    // 이미지 처리 (링크는 위에서 이미 처리됨)
     $("img").each((_, elem) => {
       const $elem = $(elem);
       const src = $elem.attr("src");
-      
+
       // 상대 경로를 절대 경로로 변환
       if (src && src.startsWith("//")) {
         $elem.attr("src", "https:" + src);
       }
-      
+
       // 이미지에 기본 스타일 추가 (메일 호환성)
       const existingStyle = $elem.attr("style") || "";
       let newStyle = existingStyle;
-      
+
       // 기본 이미지 스타일 추가 (중복 체크)
       if (!newStyle.includes("max-width")) {
         newStyle += "; max-width: 100%;";
@@ -355,7 +356,7 @@ export async function POST(request: NextRequest) {
       if (!newStyle.includes("border")) {
         newStyle += "; border: 0;";
       }
-      
+
       $elem.attr("style", newStyle.replace(/^;\s*/, ""));
     });
 
@@ -535,8 +536,11 @@ export async function POST(request: NextRequest) {
     // [space] 변환 처리
     const spaceProcessedHtml = convertSpaceToMargin(ctaProcessedHtml);
 
+    // [img-link] 변환 처리
+    const imgLinkProcessedHtml = convertImageLinks(spaceProcessedHtml);
+
     // 기본 이미지 처리만 적용
-    const finalHtml = convertGoogleImagesToBase64(spaceProcessedHtml);
+    const finalHtml = convertGoogleImagesToBase64(imgLinkProcessedHtml);
 
     const mailchimpFriendlyHtml = `
 <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
