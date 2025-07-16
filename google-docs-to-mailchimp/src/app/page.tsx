@@ -187,8 +187,8 @@ export default function Home() {
                     : "3. Markdown style link"}
                 </p>
                 <code className="bg-blue-100 px-2 py-1 rounded text-xs block">
-                  [cta] [{language === "ko" ? "구매하기" : "Buy Now"}
-                  ](https://example.com)
+                  [cta] [{language === "ko" ? "구매하기" : "Buy Now"}]
+                  (https://example.com)
                 </code>
                 <p className="text-xs text-blue-600 mt-2">
                   {language === "ko"
