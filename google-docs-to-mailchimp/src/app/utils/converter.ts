@@ -265,18 +265,36 @@ export function enhanceMarkdownStyles(html: string): string {
   let processedHtml = html;
 
   // 굵은 글씨 처리 (b, strong 태그를 인라인 스타일로)
+  // 이모지와 특수문자가 포함된 텍스트도 안전하게 처리
   processedHtml = processedHtml.replace(
-    /<(b|strong)([^>]*)>/gi,
-    '<span style="font-weight: bold;">'
+    /<(b|strong)([^>]*)>(.*?)<\/(b|strong)>/gi,
+    (match, openTag, attributes, content) => {
+      return `<span style="font-weight: bold !important;">${content}</span>`;
+    }
   );
-  processedHtml = processedHtml.replace(/<\/(b|strong)>/gi, "</span>");
+
+  // 중첩된 span 태그가 있는 경우 bold 스타일 보강
+  processedHtml = processedHtml.replace(
+    /<span([^>]*?)>(.*?)<\/span>/gi,
+    (match, attributes, content) => {
+      // 이미 font-weight가 있거나 bold 클래스가 있는 경우 !important 추가
+      if (attributes.includes("font-weight") || attributes.includes("bold")) {
+        let newAttributes = attributes.replace(/font-weight:\s*[^;]*;?/gi, "");
+        newAttributes = newAttributes.replace(/font-weight/gi, "");
+        return `<span${newAttributes} style="font-weight: bold !important;">${content}</span>`;
+      }
+      return match;
+    }
+  );
 
   // 이탤릭 처리 (i, em 태그를 인라인 스타일로)
+  // 이모지와 특수문자가 포함된 텍스트도 안전하게 처리
   processedHtml = processedHtml.replace(
-    /<(i|em)([^>]*)>/gi,
-    '<span style="font-style: italic;">'
+    /<(i|em)([^>]*)>(.*?)<\/(i|em)>/gi,
+    (match, openTag, attributes, content) => {
+      return `<span style="font-style: italic;">${content}</span>`;
+    }
   );
-  processedHtml = processedHtml.replace(/<\/(i|em)>/gi, "</span>");
 
   // 밑줄 처리 - 구글 독스의 밑줄은 항상 유지
   processedHtml = processedHtml.replace(

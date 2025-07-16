@@ -122,13 +122,20 @@ export async function POST(request: NextRequest) {
     });
 
     // 굵은 글씨와 이탤릭을 인라인 스타일로 변환
+    // 이모지가 포함된 텍스트도 안전하게 처리
     $("b, strong").each((_, elem) => {
       const $elem = $(elem);
       const existingStyle = $elem.attr("style") || "";
-      $elem.attr(
-        "style",
-        `${existingStyle}; font-weight: bold;`.replace(/^;\s*/, "")
-      );
+
+      // 기존 font-weight 속성 제거 후 새로 설정
+      let cleanStyle = existingStyle.replace(/font-weight\s*:\s*[^;]*;?/gi, "");
+      cleanStyle = cleanStyle.replace(/;\s*$/, ""); // 끝의 세미콜론 정리
+
+      const newStyle = cleanStyle
+        ? `${cleanStyle}; font-weight: bold !important;`
+        : "font-weight: bold !important;";
+
+      $elem.attr("style", newStyle);
       const element = $elem.get(0);
       if (element) {
         element.tagName = "span";
@@ -305,16 +312,31 @@ export async function POST(request: NextRequest) {
       );
     });
 
-    // 텍스트 요소들의 색상 보존 강화
+    // 텍스트 요소들의 색상 보존 강화 및 bold 스타일 보강
     $("span, div, p").each((_, elem) => {
       const $elem = $(elem);
       const existingStyle = $elem.attr("style") || "";
 
       // 기존 스타일이 있으면 보존하고, 라인 높이만 추가
       if (existingStyle) {
-        if (!existingStyle.includes("line-height")) {
-          $elem.attr("style", `${existingStyle}; line-height: 1.6;`);
+        let newStyle = existingStyle;
+        
+        // font-weight가 이미 bold로 설정되어 있는데 !important가 없으면 추가
+        if (existingStyle.includes("font-weight") && existingStyle.includes("bold")) {
+          if (!existingStyle.includes("!important")) {
+            newStyle = existingStyle.replace(
+              /font-weight\s*:\s*bold\s*;?/gi, 
+              "font-weight: bold !important;"
+            );
+          }
         }
+        
+        // 라인 높이 추가
+        if (!newStyle.includes("line-height")) {
+          newStyle = `${newStyle}; line-height: 1.6;`;
+        }
+        
+        $elem.attr("style", newStyle);
       }
     });
 
@@ -459,7 +481,7 @@ export async function POST(request: NextRequest) {
 
     // CTA 변환을 개선된 함수로 처리
     const ctaProcessedHtml = enhancedCTAConversion(bodyContent, commentLinks);
-    
+
     // [space] 변환 처리
     const spaceProcessedHtml = convertSpaceToMargin(ctaProcessedHtml);
 
