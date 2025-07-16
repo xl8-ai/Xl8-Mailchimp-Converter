@@ -212,8 +212,8 @@ export default function Home() {
             <div className="text-sm text-green-700 space-y-2">
               <p>
                 {language === "ko"
-                  ? "구글 독스에서 다음과 같이 입력하면 20px 여백이 추가됩니다:"
-                  : "Type the following in Google Docs to add 20px spacing:"}
+                  ? "구글 독스에서 다음과 같이 입력하면 15px 여백이 추가됩니다:"
+                  : "Type the following in Google Docs to add 15px spacing:"}
               </p>
               <code className="bg-green-100 px-2 py-1 rounded text-xs block">
                 [space]

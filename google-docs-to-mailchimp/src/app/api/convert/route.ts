@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // 하이퍼링크 보존 및 스타일 적용
+    // 하이퍼링크 보존 및 스타일 적용 (이미지 링크 포함)
     $("a").each((_, elem) => {
       const $elem = $(elem);
       const href = $elem.attr("href");
@@ -103,22 +103,56 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 링크 스타일 적용 - 기존 색상이 있으면 유지, 없으면 파란색 적용
-      const hasExistingColor = existingStyle.includes("color:");
-      let linkStyle = existingStyle;
+      // 이미지가 포함된 링크인지 확인
+      const hasImage = $elem.find("img").length > 0;
 
-      if (!hasExistingColor) {
-        // 기존 색상이 없으면 파란색 적용
-        linkStyle = `${existingStyle}; color: #1a73e8;`.replace(/^;\s*/, "");
+      if (hasImage) {
+        // 이미지 링크의 경우 특별 처리
+        let linkStyle = existingStyle;
+
+        // 이미지 링크는 밑줄 제거하고 블록 스타일 적용
+        if (!linkStyle.includes("text-decoration")) {
+          linkStyle += "; text-decoration: none;";
+        }
+        if (!linkStyle.includes("display")) {
+          linkStyle += "; display: inline-block;";
+        }
+        if (!linkStyle.includes("border")) {
+          linkStyle += "; border: none;";
+        }
+
+        $elem.attr("style", linkStyle.replace(/^;\s*/, ""));
+        $elem.attr("target", "_blank");
+
+        // 이미지에도 클릭 가능 스타일 추가
+        $elem.find("img").each((_, img) => {
+          const $img = $(img);
+          const imgStyle = $img.attr("style") || "";
+          if (!imgStyle.includes("cursor")) {
+            $img.attr(
+              "style",
+              `${imgStyle}; cursor: pointer;`.replace(/^;\s*/, "")
+            );
+          }
+        });
+      } else {
+        // 텍스트 링크의 경우 기존 로직 유지
+        const hasExistingColor = existingStyle.includes("color:");
+        let linkStyle = existingStyle;
+
+        if (!hasExistingColor) {
+          // 기존 색상이 없으면 파란색 적용
+          linkStyle = `${existingStyle}; color: #1a73e8;`.replace(/^;\s*/, "");
+        }
+
+        // 밑줄과 target은 항상 적용
+        if (!linkStyle.includes("text-decoration:")) {
+          linkStyle += "; text-decoration: underline;";
+        }
+
+        $elem.attr("style", linkStyle.replace(/^;\s*/, ""));
+        $elem.attr("target", "_blank");
       }
-
-      // 밑줄과 target은 항상 적용
-      if (!linkStyle.includes("text-decoration:")) {
-        linkStyle += "; text-decoration: underline;";
-      }
-
-      $elem.attr("style", linkStyle.replace(/^;\s*/, ""));
-      $elem.attr("target", "_blank");
     });
 
     // 굵은 글씨와 이탤릭을 인라인 스타일로 변환
@@ -294,7 +328,7 @@ export async function POST(request: NextRequest) {
       );
     });
 
-    // 이미지 처리 및 링크 연결 지원
+        // 이미지 처리 (링크는 위에서 이미 처리됨)
     $("img").each((_, elem) => {
       const $elem = $(elem);
       const src = $elem.attr("src");
@@ -306,39 +340,23 @@ export async function POST(request: NextRequest) {
       
       // 이미지에 기본 스타일 추가 (메일 호환성)
       const existingStyle = $elem.attr("style") || "";
-      $elem.attr(
-        "style",
-        `${existingStyle}; max-width: 100%; height: auto; display: block; border: 0;`.replace(
-          /^;\s*/,
-          ""
-        )
-      );
+      let newStyle = existingStyle;
       
-      // 부모가 링크인 경우 링크 스타일 최적화
-      const $parentLink = $elem.parent("a");
-      if ($parentLink.length > 0) {
-        // 링크가 있는 이미지의 경우 부모 링크에 스타일 추가
-        const parentStyle = $parentLink.attr("style") || "";
-        $parentLink.attr(
-          "style", 
-          `${parentStyle}; display: inline-block; text-decoration: none; border: none;`.replace(
-            /^;\s*/,
-            ""
-          )
-        );
-        
-        // target="_blank" 추가 (이미 있으면 유지)
-        if (!$parentLink.attr("target")) {
-          $parentLink.attr("target", "_blank");
-        }
-        
-        // 이미지 자체에도 클릭 가능함을 나타내는 스타일 추가
-        const imgStyle = $elem.attr("style") || "";
-        $elem.attr(
-          "style",
-          `${imgStyle}; cursor: pointer;`.replace(/^;\s*/, "")
-        );
+      // 기본 이미지 스타일 추가 (중복 체크)
+      if (!newStyle.includes("max-width")) {
+        newStyle += "; max-width: 100%;";
       }
+      if (!newStyle.includes("height") || !newStyle.includes("auto")) {
+        newStyle += "; height: auto;";
+      }
+      if (!newStyle.includes("display")) {
+        newStyle += "; display: block;";
+      }
+      if (!newStyle.includes("border")) {
+        newStyle += "; border: 0;";
+      }
+      
+      $elem.attr("style", newStyle.replace(/^;\s*/, ""));
     });
 
     // 텍스트 요소들의 색상 보존 강화 및 bold 스타일 보강
@@ -349,22 +367,25 @@ export async function POST(request: NextRequest) {
       // 기존 스타일이 있으면 보존하고, 라인 높이만 추가
       if (existingStyle) {
         let newStyle = existingStyle;
-        
+
         // font-weight가 이미 bold로 설정되어 있는데 !important가 없으면 추가
-        if (existingStyle.includes("font-weight") && existingStyle.includes("bold")) {
+        if (
+          existingStyle.includes("font-weight") &&
+          existingStyle.includes("bold")
+        ) {
           if (!existingStyle.includes("!important")) {
             newStyle = existingStyle.replace(
-              /font-weight\s*:\s*bold\s*;?/gi, 
+              /font-weight\s*:\s*bold\s*;?/gi,
               "font-weight: bold !important;"
             );
           }
         }
-        
+
         // 라인 높이 추가
         if (!newStyle.includes("line-height")) {
           newStyle = `${newStyle}; line-height: 1.6;`;
         }
-        
+
         $elem.attr("style", newStyle);
       }
     });
