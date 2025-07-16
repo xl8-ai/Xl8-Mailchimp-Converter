@@ -5,6 +5,7 @@ import {
   enhancedCTAConversion,
   extractLinksFromComments,
   createMailchimpButton,
+  convertSpaceToMargin,
 } from "@/app/utils/converter";
 
 export async function POST(request: NextRequest) {
@@ -457,10 +458,13 @@ export async function POST(request: NextRequest) {
     );
 
     // CTA 변환을 개선된 함수로 처리
-    const processedHtml = enhancedCTAConversion(bodyContent, commentLinks);
+    const ctaProcessedHtml = enhancedCTAConversion(bodyContent, commentLinks);
+    
+    // [space] 변환 처리
+    const spaceProcessedHtml = convertSpaceToMargin(ctaProcessedHtml);
 
     // 기본 이미지 처리만 적용
-    const finalHtml = convertGoogleImagesToBase64(processedHtml);
+    const finalHtml = convertGoogleImagesToBase64(spaceProcessedHtml);
 
     const mailchimpFriendlyHtml = `
 <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">

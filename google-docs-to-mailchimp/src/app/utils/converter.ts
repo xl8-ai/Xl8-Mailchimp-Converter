@@ -562,3 +562,42 @@ export function enhancedCTAConversion(
 
   return processedHtml;
 }
+
+export function convertSpaceToMargin(html: string): string {
+  let processedHtml = html;
+
+  // [space] 패턴을 여백으로 변환
+  processedHtml = processedHtml.replace(
+    /\[space\]/gi,
+    '<div style="margin: 30px 0; height: 30px; line-height: 30px;">&nbsp;</div>'
+  );
+
+  // 텍스트 요소 안에 [space]가 있는 경우도 처리
+  processedHtml = processedHtml.replace(
+    /<(p|div|span|h[1-6])[^>]*>([^<]*)\[space\]([^<]*)<\/\1>/gi,
+    (match, tag, beforeText, afterText) => {
+      const trimmedBefore = beforeText.trim();
+      const trimmedAfter = afterText.trim();
+
+      let result = "";
+
+      // 앞 텍스트가 있으면 추가
+      if (trimmedBefore) {
+        result += match.replace(/\[space\].*$/, trimmedBefore + `</${tag}>`);
+      }
+
+      // 여백 추가
+      result +=
+        '<div style="margin: 30px 0; height: 30px; line-height: 30px;">&nbsp;</div>';
+
+      // 뒤 텍스트가 있으면 추가
+      if (trimmedAfter) {
+        result += `<${tag}>${trimmedAfter}</${tag}>`;
+      }
+
+      return result;
+    }
+  );
+
+  return processedHtml;
+}

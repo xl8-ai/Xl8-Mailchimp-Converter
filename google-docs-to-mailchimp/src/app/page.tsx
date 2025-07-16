@@ -204,6 +204,28 @@ export default function Home() {
             </div>
           </div>
 
+          {/* 여백 추가 기능 안내 */}
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
+            <h3 className="text-sm font-medium text-green-900 mb-2">
+              {language === "ko" ? "📏 여백 추가하기" : "📏 Adding Spacing"}
+            </h3>
+            <div className="text-sm text-green-700 space-y-2">
+              <p>
+                {language === "ko"
+                  ? "구글 독스에서 다음과 같이 입력하면 30px 여백이 추가됩니다:"
+                  : "Type the following in Google Docs to add 30px spacing:"}
+              </p>
+              <code className="bg-green-100 px-2 py-1 rounded text-xs block">
+                [space]
+              </code>
+              <p className="text-xs text-green-600 mt-2">
+                {language === "ko"
+                  ? "💡 섹션 간 구분이나 시각적 여백이 필요할 때 사용하세요!"
+                  : "💡 Use this to separate sections or add visual spacing!"}
+              </p>
+            </div>
+          </div>
+
           <button
             onClick={handleConvert}
             disabled={loading}
