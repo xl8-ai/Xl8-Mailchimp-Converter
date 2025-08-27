@@ -7,6 +7,7 @@ import {
   createMailchimpButton,
   convertSpaceToMargin,
   convertImageLinks,
+  enhanceBoldText,
 } from "@/app/utils/converter";
 
 export async function POST(request: NextRequest) {
@@ -34,57 +35,124 @@ export async function POST(request: NextRequest) {
 
     const html = await response.text();
 
+    // 디버깅: 원본 HTML에서 볼드 관련 패턴 확인
+    console.log("🔍 === 원본 HTML 볼드 패턴 분석 ===");
+
+    // 더 정확한 패턴들로 분석
+    const boldPatterns = [
+      { name: "b 태그", pattern: /<b[^>]*>.*?<\/b>/gi },
+      { name: "strong 태그", pattern: /<strong[^>]*>.*?<\/strong>/gi },
+      {
+        name: "font-weight 포함 span",
+        pattern: /<span[^>]*font-weight[^>]*>.*?<\/span>/gi,
+      },
+      {
+        name: "font-weight:700",
+        pattern:
+          /<span[^>]*style="[^"]*font-weight:\s*700[^"]*"[^>]*>.*?<\/span>/gi,
+      },
+      {
+        name: "font-weight:bold",
+        pattern:
+          /<span[^>]*style="[^"]*font-weight:\s*bold[^"]*"[^>]*>.*?<\/span>/gi,
+      },
+      { name: "모든 span", pattern: /<span[^>]*>.*?<\/span>/gi },
+    ];
+
+    boldPatterns.forEach(({ name, pattern }) => {
+      const matches = html.match(pattern) || [];
+      console.log(`🔍 ${name}: ${matches.length}개`);
+      if (matches.length > 0 && matches[0]) {
+        console.log(`🔍 ${name} 샘플:`, matches[0].substring(0, 300));
+      }
+    });
+
+    // 특별히 구글 독스에서 자주 나타나는 패턴 확인
+    const googleDocsPatterns = [
+      /style="[^"]*font-weight:\s*700[^"]*"/gi,
+      /style="[^"]*font-weight:\s*bold[^"]*"/gi,
+      /style="[^"]*font-family:[^;]*;[^"]*font-weight[^"]*"/gi,
+    ];
+
+    console.log("🔍 === 구글 독스 특수 패턴 ===");
+    googleDocsPatterns.forEach((pattern, index) => {
+      const matches = html.match(pattern) || [];
+      console.log(`🔍 구글독스 패턴 ${index + 1}: ${matches.length}개`);
+      if (matches.length > 0) {
+        matches.slice(0, 3).forEach((match, i) => {
+          console.log(`🔍 샘플 ${i + 1}:`, match);
+        });
+      }
+    });
+
     // 코멘트에서 링크를 추출
     const commentLinks = extractLinksFromComments(html);
 
     const $ = cheerio.load(html);
+
+    // 먼저 볼드체 처리 (속성 제거 전에)
+    console.log("🔍 볼드체 처리 시작 - Cheerio 단계");
+
+    // 1. 기본 b, strong 태그 처리
+    const bStrongCount = $("b, strong").length;
+    console.log("🔍 b, strong 태그 개수:", bStrongCount);
+
+    $("b, strong").each((_, elem) => {
+      const $elem = $(elem);
+      const existingStyle = $elem.attr("style") || "";
+      console.log("🔍 b/strong 태그 스타일:", existingStyle);
+
+      let cleanStyle = existingStyle.replace(/font-weight\s*:\s*[^;]*;?/gi, "");
+      cleanStyle = cleanStyle.replace(/;\s*$/, "");
+
+      const newStyle = cleanStyle
+        ? `${cleanStyle}; font-weight: bold !important;`
+        : "font-weight: bold !important;";
+
+      $elem.attr("style", newStyle);
+      const element = $elem.get(0);
+      if (element) {
+        element.tagName = "span";
+      }
+    });
+
+    // 2. font-weight 스타일이 있는 span 처리
+    const fontWeightSpans = $("span[style*='font-weight']");
+    console.log("🔍 font-weight 스타일 span 개수:", fontWeightSpans.length);
+
+    fontWeightSpans.each((_, elem) => {
+      const $elem = $(elem);
+      const style = $elem.attr("style") || "";
+      console.log("🔍 span 스타일:", style);
+
+      const weightMatch = style.match(
+        /font-weight:\s*(bold|bolder|[5-9]\d\d)/i
+      );
+      if (weightMatch) {
+        console.log("🔍 볼드 매치:", weightMatch[1]);
+        let cleanStyle = style.replace(/font-weight:\s*[^;]*;?/gi, "");
+        cleanStyle = cleanStyle.replace(/;\s*$/, "");
+
+        const newStyle = cleanStyle
+          ? `${cleanStyle}; font-weight: bold !important;`
+          : "font-weight: bold !important;";
+
+        $elem.attr("style", newStyle);
+      }
+    });
 
     // 불필요한 태그만 제거 (스타일은 보존)
     $("script").remove();
     $("meta").remove();
     $("title").remove();
 
-    // 위험한 속성만 제거 (style은 보존)
+    // 위험한 속성만 제거 (style은 보존, class는 볼드 처리 후 제거)
     $("*").each((_, elem) => {
       $(elem).removeAttr("class");
       $(elem).removeAttr("id");
       $(elem).removeAttr("onclick");
       $(elem).removeAttr("onload");
       $(elem).removeAttr("onerror");
-
-      // 모든 스타일 속성 보존 (더 포괄적으로)
-      const style = $(elem).attr("style");
-      if (style) {
-        // 모든 스타일 속성을 보존하되, 메일 호환성을 위해 정리
-        const styleProps = style.split(";").filter((prop) => prop.trim());
-        let preservedStyle = "";
-
-        styleProps.forEach((prop) => {
-          const trimmedProp = prop.trim();
-          if (trimmedProp) {
-            // 중요한 스타일들은 모두 보존 (더 포괄적으로)
-            if (
-              trimmedProp.includes("font-size") ||
-              trimmedProp.includes("font-weight") ||
-              trimmedProp.includes("font-family") ||
-              trimmedProp.includes("color") ||
-              trimmedProp.includes("background-color") ||
-              trimmedProp.includes("text-decoration") ||
-              trimmedProp.includes("font-style") ||
-              trimmedProp.includes("text-align") ||
-              trimmedProp.includes("line-height") ||
-              trimmedProp.includes("margin") ||
-              trimmedProp.includes("padding")
-            ) {
-              preservedStyle += `${trimmedProp};`;
-            }
-          }
-        });
-
-        if (preservedStyle) {
-          $(elem).attr("style", preservedStyle);
-        }
-      }
     });
 
     // 하이퍼링크 보존 및 스타일 적용 (이미지 링크 포함)
@@ -153,27 +221,6 @@ export async function POST(request: NextRequest) {
 
         $elem.attr("style", linkStyle.replace(/^;\s*/, ""));
         $elem.attr("target", "_blank");
-      }
-    });
-
-    // 굵은 글씨와 이탤릭을 인라인 스타일로 변환
-    // 이모지가 포함된 텍스트도 안전하게 처리
-    $("b, strong").each((_, elem) => {
-      const $elem = $(elem);
-      const existingStyle = $elem.attr("style") || "";
-
-      // 기존 font-weight 속성 제거 후 새로 설정
-      let cleanStyle = existingStyle.replace(/font-weight\s*:\s*[^;]*;?/gi, "");
-      cleanStyle = cleanStyle.replace(/;\s*$/, ""); // 끝의 세미콜론 정리
-
-      const newStyle = cleanStyle
-        ? `${cleanStyle}; font-weight: bold !important;`
-        : "font-weight: bold !important;";
-
-      $elem.attr("style", newStyle);
-      const element = $elem.get(0);
-      if (element) {
-        element.tagName = "span";
       }
     });
 
@@ -539,8 +586,39 @@ export async function POST(request: NextRequest) {
     // [img-link] 변환 처리
     const imgLinkProcessedHtml = convertImageLinks(spaceProcessedHtml);
 
-    // 기본 이미지 처리만 적용
-    const finalHtml = convertGoogleImagesToBase64(imgLinkProcessedHtml);
+    // 기본 이미지 처리 적용
+    const imageProcessedHtml =
+      convertGoogleImagesToBase64(imgLinkProcessedHtml);
+
+    // 최종 볼드체 처리 강화 (HTML 문자열 레벨에서 추가 패턴 처리)
+    const finalHtml = enhanceBoldText(imageProcessedHtml);
+
+    // 디버깅: 최종 처리 후 볼드 스타일 확인
+    console.log("🔍 === 최종 처리 결과 ===");
+    const boldStyleCount = (
+      finalHtml.match(/font-weight:\s*bold\s*!important/gi) || []
+    ).length;
+    console.log("🔍 최종 볼드 스타일 개수:", boldStyleCount);
+
+    // 최종 HTML에서 볼드 관련 태그들 확인
+    const finalBoldPatterns = [
+      {
+        name: "bold !important",
+        pattern: /font-weight:\s*bold\s*!important/gi,
+      },
+      { name: "span 태그", pattern: /<span[^>]*>.*?<\/span>/gi },
+      { name: "남은 b/strong", pattern: /<(b|strong)[^>]*>.*?<\/\1>/gi },
+    ];
+
+    finalBoldPatterns.forEach(({ name, pattern }) => {
+      const matches = finalHtml.match(pattern) || [];
+      console.log(`🔍 최종 ${name}: ${matches.length}개`);
+      if (matches.length > 0 && name === "bold !important") {
+        matches.slice(0, 3).forEach((match, i) => {
+          console.log(`🔍 최종 볼드 샘플 ${i + 1}:`, match);
+        });
+      }
+    });
 
     const mailchimpFriendlyHtml = `
 <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">

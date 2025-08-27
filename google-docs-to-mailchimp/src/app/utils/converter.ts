@@ -123,7 +123,7 @@ export function processGoogleDocsLinks(html: string): string {
 export function convertGoogleImagesToBase64(html: string): string {
   let processedHtml = html;
 
-  // 이미지 URL 패턴들
+  // 이미지 URL 패턴들 - 링크로 감싸진 이미지도 고려
   const imageRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
 
   // 모든 이미지 태그를 찾아서 처리
@@ -146,12 +146,36 @@ export function convertGoogleImagesToBase64(html: string): string {
     // 이미지 태그에 이메일 친화적 속성 추가
     let newImg = match.replace(/src=["']([^"']+)["']/i, `src="${fixedUrl}"`);
 
-    // 기본 스타일 추가
-    if (!newImg.includes("style=")) {
-      newImg = newImg.replace(
-        "<img",
-        '<img style="display: block; max-width: 100%; height: auto; border: 0;"'
-      );
+    // 기본 스타일 추가 (기존 스타일 보존)
+    const existingStyle = newImg.match(/style=["']([^"']*)["']/i);
+    const currentStyle = existingStyle ? existingStyle[1] : "";
+
+    let newStyle = currentStyle;
+
+    // 필수 이미지 스타일 추가 (중복 체크)
+    if (!newStyle.includes("max-width")) {
+      newStyle += "; max-width: 100%";
+    }
+    if (!newStyle.includes("height") || !newStyle.includes("auto")) {
+      newStyle += "; height: auto";
+    }
+    if (!newStyle.includes("border") || !newStyle.includes("0")) {
+      newStyle += "; border: 0";
+    }
+
+    // display는 링크 안의 이미지인지 확인 후 설정
+    // (링크 안의 이미지는 inline-block이 더 적절)
+    if (!newStyle.includes("display")) {
+      newStyle += "; display: block";
+    }
+
+    // 스타일 정리 및 적용
+    newStyle = newStyle.replace(/^;\s*/, "").replace(/;\s*$/, "");
+
+    if (existingStyle) {
+      newImg = newImg.replace(/style=["'][^"']*["']/i, `style="${newStyle}"`);
+    } else {
+      newImg = newImg.replace("<img", `<img style="${newStyle}"`);
     }
 
     // alt 속성이 없으면 추가
@@ -666,6 +690,77 @@ export function convertImageLinks(html: string): string {
 
   // 남아있는 마커들 제거 (이미지가 없는 경우)
   processedHtml = processedHtml.replace(/<!--IMG_LINK_MARKER:[^-->]+-->/gi, "");
+
+  return processedHtml;
+}
+
+// 볼드체 처리를 위한 전용 함수 - 더 강력하고 포괄적인 처리
+export function enhanceBoldText(html: string): string {
+  let processedHtml = html;
+
+  // 1. 구글 독스의 다양한 볼드 패턴들을 모두 처리
+  const boldPatterns = [
+    // font-weight: 700, 800, 900 등의 숫자값 (더 넓은 범위)
+    /<span([^>]*style="[^"]*font-weight:\s*([6-9]\d\d|bold|bolder)[^"]*"[^>]*)>(.*?)<\/span>/gi,
+    // b, strong 태그
+    /<(b|strong)([^>]*)>(.*?)<\/\1>/gi,
+    // 클래스 기반 볼드
+    /<span([^>]*class="[^"]*(?:bold|fw-bold|font-bold|font-weight-bold)[^"]*"[^>]*)>(.*?)<\/span>/gi,
+    // 구글 독스 특수 패턴 (font-family와 함께 오는 경우)
+    /<span([^>]*style="[^"]*font-family:[^;]*;[^"]*font-weight:\s*([6-9]\d\d|bold)[^"]*"[^>]*)>(.*?)<\/span>/gi,
+    // 구글 독스에서 자주 나타나는 패턴: font-weight만 있는 경우
+    /<span([^>]*style="[^"]*font-weight:\s*7\d\d[^"]*"[^>]*)>(.*?)<\/span>/gi,
+    // 더 광범위한 font-weight 패턴 (500 이상도 볼드로 처리)
+    /<span([^>]*style="[^"]*font-weight:\s*([5-9]\d\d)[^"]*"[^>]*)>(.*?)<\/span>/gi,
+  ];
+
+  boldPatterns.forEach((pattern) => {
+    processedHtml = processedHtml.replace(pattern, (match, ...groups) => {
+      // 마지막 그룹이 항상 content
+      const content = groups[groups.length - 1];
+
+      // 이미 볼드 처리된 것인지 확인
+      if (match.includes("font-weight: bold !important")) {
+        return match;
+      }
+
+      return `<span style="font-weight: bold !important;">${content}</span>`;
+    });
+  });
+
+  // 2. 중첩된 볼드 태그 정리 (불필요한 중복 제거)
+  processedHtml = processedHtml.replace(
+    /<span style="font-weight: bold !important;">([^<]*)<span style="font-weight: bold !important;">([^<]*)<\/span>([^<]*)<\/span>/gi,
+    '<span style="font-weight: bold !important;">$1$2$3</span>'
+  );
+
+  // 3. 빈 볼드 태그 제거
+  processedHtml = processedHtml.replace(
+    /<span style="font-weight: bold !important;">\s*<\/span>/gi,
+    ""
+  );
+
+  // 4. 구글 독스에서 자주 나타나는 특수 케이스 처리
+  // 예: <span style="font-weight:700;color:#000000">텍스트</span>
+  processedHtml = processedHtml.replace(
+    /<span([^>]*style="[^"]*font-weight:\s*7\d\d[^"]*"[^>]*)>(.*?)<\/span>/gi,
+    (match, attributes, content) => {
+      // 기존 font-weight 제거하고 다른 스타일은 유지
+      const otherStyles = attributes.match(/style="([^"]*)"/);
+      if (otherStyles) {
+        let styleContent = otherStyles[1].replace(
+          /font-weight:\s*[^;]*;?/gi,
+          ""
+        );
+        styleContent = styleContent.replace(/;+/g, ";").replace(/^;|;$/g, "");
+
+        if (styleContent) {
+          return `<span style="${styleContent}; font-weight: bold !important;">${content}</span>`;
+        }
+      }
+      return `<span style="font-weight: bold !important;">${content}</span>`;
+    }
+  );
 
   return processedHtml;
 }
