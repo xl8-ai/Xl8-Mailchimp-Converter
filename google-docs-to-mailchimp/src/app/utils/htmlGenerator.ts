@@ -165,7 +165,7 @@ export class HtmlGenerator {
     }
 
     let imageHtml = `<img src="${imageUrl}" alt="${
-      element.alt || element.content || "이미지"
+      element.content || "이미지"
     }" style="${styles}">`;
 
     // 이미지 링크가 있는 경우 (ctaUrl 사용)
@@ -279,13 +279,9 @@ export class HtmlGenerator {
       styles.color = formatting.color;
     }
 
-    if (formatting.backgroundColor) {
-      styles.backgroundColor = formatting.backgroundColor;
-    }
 
-    if (formatting.alignment) {
-      styles.textAlign = formatting.alignment;
-    }
+
+
 
     // 기본 폰트 패밀리 추가
     if (!styles.fontFamily) {
