@@ -189,7 +189,7 @@ export class HtmlGenerator {
 <!-- CTA 버튼 상단 여백 -->
 <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; width: 100%;">
   <tr>
-    <td style="height: 20px; line-height: 20px; font-size: 1px;">&nbsp;</td>
+    <td style="height: 15px; line-height: 15px; font-size: 1px;">&nbsp;</td>
   </tr>
 </table>
 
@@ -237,7 +237,7 @@ export class HtmlGenerator {
 <!-- CTA 버튼 하단 여백 -->
 <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; width: 100%;">
   <tr>
-    <td style="height: 25px; line-height: 25px; font-size: 1px;">&nbsp;</td>
+    <td style="height: 18px; line-height: 18px; font-size: 1px;">&nbsp;</td>
   </tr>
 </table>`.trim();
   }
